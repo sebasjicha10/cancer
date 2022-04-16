@@ -1,0 +1,84 @@
+<html>
+<head></head>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script lang="js">
+        
+        async function run(){
+
+            // training set
+            // https://github.com/https-deeplearning-ai/tensorflow-2-public/blob/main/C1_Browser-based-TF-JS/W1/assignment/data/wdbc-train.csv
+
+            // validation set
+            // https://github.com/https-deeplearning-ai/tensorflow-2-public/blob/main/C1_Browser-based-TF-JS/W1/assignment/data/wdbc-test.csv
+        
+            const trainingUrl = '/data/wdbc-train.csv';
+            
+            const trainingData = tf.data.csv(trainingUrl, {
+                columnConfigs: {
+                    diagnosis: {
+                        isLabel: true
+                    }
+                }
+                
+            });
+
+            const convertedTrainingData = 
+                trainingData.map(({xs, ys}) => {
+                    const labels = [ys.diagnosis]
+                    return {xs: Object.values(xs), ys: Object.values(labels)}
+                }).batch(10)
+        
+                
+            const testingUrl = '/data/wdbc-test.csv';
+            
+
+            const testingData = tf.data.csv(testingUrl, {
+                columnConfigs: {
+                    diagnosis: {
+                        isLabel: true
+                    }
+                }
+            });
+
+            const convertedTestingData = 
+                testingData.map(({xs, ys}) => {
+                    const labels = [ys.diagnosis]
+                    return {xs: Object.values(xs), ys: Object.values(labels)}
+                }).batch(10)
+
+                  
+            const numOfFeatures = (await trainingData.columnNames()).length -1
+            
+            const model = tf.sequential();
+            model.add(tf.layers.dense({inputShape: [numOfFeatures], activation: "relu", units: 10}))
+            model.add(tf.layers.dense({activation: "relu", units: 5}))
+            model.add(tf.layers.dense({activation: "sigmoid", units: 1}))
+            
+            model.compile({loss: "binaryCrossentropy", optimizer: tf.train.rmsprop(0.06), metrics: "accuracy"})
+            
+            
+            await model.fitDataset(convertedTrainingData, 
+                             {epochs:100,
+                              validationData: convertedTestingData,
+                              callbacks:{
+                                  onEpochEnd: async(epoch, logs) =>{
+                                      console.log("Epoch: " + epoch + " Loss: " + logs.loss + " Accuracy: " + logs.acc);
+                                  }
+                              }});
+            //await model.save('downloads://my_model');
+                
+            // malignant
+            // const testVal = tf.tensor2d([2.576110292,1.881653039,2.53977619,2.840300021,-0.09600421872,1.286448667,1.383441078,1.945530185,0.3639637746,0.06195237233,2.307545344,-0.4551097898,2.172303738,2.422805586,-0.2025649959,0.2039260141,0.4343910619,0.9359903104,-0.5649197239,-0.2521444819,3.020137331,1.47216361,2.925299903,3.521650721,0.692042356,1.050981313,1.577132803,2.219993228,0.3160082733,0.1842479305], [1, 30])
+            
+            // benign
+            const testVal = tf.tensor2d([-0.1479543428,-0.316022104,-0.2296887725,-0.2278519164,-1.228460812,-1.245153858,-0.8687343953,-0.9417714592,-0.8637574616,-1.096411789,-0.5087818951,-0.08105554107,-0.5611590963,-0.3789093469,-1.148512825,-1.131426161,-0.670155489,-1.120806452,-0.8653783829,-0.9913594384,-0.1547736781,0.0921003893,-0.2400514052,-0.2425773277,-1.214962671,-1.148428632,-0.8098132355,-0.9593660765,-0.9045453899,-1.172362758], [1, 30])
+
+            const prediction = model.predict(testVal)
+            alert(prediction)
+        }
+
+        run();
+    </script>
+<body>
+</body>
+</html>
